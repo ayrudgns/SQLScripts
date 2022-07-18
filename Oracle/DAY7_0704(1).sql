@@ -1,0 +1,77 @@
+-- MIN_SALARY 컬럼이 10000 이상인 JOB_TITLE 조회
+	SELECT JOB_TITLE FROM JOBS WHERE MIN_SALARY >= 10000;
+
+-- JOB_TITLE 컬럼이 PROGRAMMER인 해의 모든 컬럼 조회
+	SELECT * FROM JOBS WHERE JOB_TITLE = 'Programmer';
+
+-- MAX_SALARY 필드값의 최댓값 조회
+	SELECT MAX(MAX_SALARY) FROM JOBS; 
+
+-- CITY 컬럼이 LONDON인 POSTAL_CODE 조회
+	SELECT POSTAL_CODE FROM LOCATIONS WHERE CITY = 'London'; 
+
+-- LOCATIONAL_ID 컬럼이 1700, 2700, 2500이 아니고 CITY 컬럼이 Tokyo인 행의 모든 컬럼 조회
+	SELECT * FROM LOCATIONS WHERE LOCATION_ID NOT IN (1700, 2700, 2500) AND CITY = 'Tokyo';
+
+-- Jonathon Taylor의 근무 이력 확인하기
+	SELECT * FROM EMPLOYEES e JOIN JOB_HISTORY jh ON E.EMPLOYEE_ID = JH.EMPLOYEE_ID
+		AND FIRST_NAME = 'Jonathon' AND LAST_NAME = 'Taylor';
+
+-- MIN_SALARY가 평균보다 작은 JOB에 대한 정보 조회하기
+	SELECT JOB_ID, JOB_TITLE, MIN_SALARY FROM JOBS j
+		WHERE MIN_SALARY < (SELECT AVG(MIN_SALARY) FROM JOBS j);
+	
+------------------------------------ 여기서부터 진도 -----------------------------------------
+
+-- 서브 쿼리가 필요한 예시 : 동일한 테이블 대상
+-- JOB_ID가 'IT_PROG'이면서 최소 급여를 받는 사람의 FIRST_NAME, LAST_NAME 컬럼 조회하기
+	SELECT FIRST_NAME, LAST_NAME, SALARY FROM EMPLOYEES e
+	WHERE SALARY = (SELECT MIN(SALARY) FROM EMPLOYEES e WHERE JOB_ID = 'IT_PROG');
+
+-- '같지 않다'를 표시하는 경우, WHERE 컬럼명 <> '조건'; 또는 WHERE NOT 컬럼명 = '조건';
+	
+-- 부서별 평균 급여를 조회하기. 정렬은 평균 급여 내림차순으로 부서_ID, 부서명, 평균 급여 (소수점 1자리로 반올림)
+-- 소수점 관련 함수 : ROUND(반올림), TRUNC(버림), CEIL(내림)
+-- 그룹함수를 조회할 때, GROUP BY를 써야 GROUP BY에 쓴 컬럼을 SELECT로 조회할 수 있다.
+-- GROUP BY에 쓰인 컬럼 외에 다른 컬럼은 SELECT할 수 없다. => 이러한 경우, JOIN이나 서브쿼리로 처리한다.
+
+-- 1단계 : 사용할 그룹함수 실행하기
+	SELECT DEPARTMENT_ID, AVG(SALARY) FROM EMPLOYEES e
+	GROUP BY DEPARTMENT_ID;
+-- 2단계	: JOIN 하기
+	SELECT * FROM DEPARTMENTS d JOIN (SELECT DEPARTMENT_ID, AVG(SALARY) cavg FROM EMPLOYEES e GROUP BY DEPARTMENT_ID) tavg
+	ON D.DEPARTMENT_ID = TAVG.DEPARTMENT_ID; 
+-- 3단계 : 컬럼 지정하기
+	SELECT D.DEPARTMENT_ID, D.DEPARTMENT_NAME, ROUND(TAVG.CAVG, 1) FROM DEPARTMENTS d
+	JOIN (SELECT DEPARTMENT_ID, AVG(SALARY) cavg FROM EMPLOYEES e GROUP BY DEPARTMENT_ID) tavg
+	ON D.DEPARTMENT_ID = TAVG.DEPARTMENT_ID 	
+	ORDER BY TAVG.CAVG DESC;
+-- 4단계 : 정렬한 결과로 특정 위치 지정하기, FIRST N은 상위 N개를 조회한다.
+	SELECT D.DEPARTMENT_ID, D.DEPARTMENT_NAME, ROUND(TAVG.CAVG, 1) FROM DEPARTMENTS d
+	JOIN (SELECT DEPARTMENT_ID, AVG(SALARY) cavg FROM EMPLOYEES e GROUP BY DEPARTMENT_ID) tavg
+	ON D.DEPARTMENT_ID = TAVG.DEPARTMENT_ID 	
+	ORDER BY TAVG.CAVG DESC
+	FETCH FIRST 1 ROWS ONLY;	-- 지정한 행만 조회한다. (TOP'N' 조회할 때 쓴다.)
+								-- FETCH는 오라클 12C 버전부터 사용 가능하다.
+								-- 11 버전은 ROWNUM을 사용해야 함.
+
+-- ROWNUM은 가상의 (임시로 쓰는)컬럼으로, 조회된 결과에 순차적으로 오라클이 부여하는 값이다.
+-- 가상 컬럼 사용을 위해 JOIN이 한번 더 필요하다.
+	SELECT ROWNUM, TCNT.* FROM
+	(SELECT DEPARTMENT_ID, COUNT(*) CNT FROM EMPLOYEES GROUP BY DEPARTMENT_ID ORDER BY CNT DESC) TCNT
+	WHERE ROWNUM = 1;
+
+	SELECT ROWNUM, TCNT.* FROM
+	(SELECT DEPARTMENT_ID, COUNT(*) CNT FROM EMPLOYEES GROUP BY DEPARTMENT_ID ORDER BY CNT DESC) TCNT
+	WHERE ROWNUM < 6;
+
+-- ROWNUM 사용할 때, 결과 확인이 되지 않는 예시 : ROWNUM이 1부터 시작해서 찾아갈 수 있는 조건식만 가능하다.
+-- WHERE ROWNUM = 3; => 1부터 시작하지 않고 3을 바로 찾으라고 하니까 안된다.
+-- WHERE ROWNUM > 5; => 5보다 큰 값부터 시작하라고 하니까 안된다.
+	
+-- 되는 경우 : ROWNUM을 포함한 조회 결과로 한번 더 SELECT하기 (이때, ROWNUM에 별칭을 붙여주기)
+	SELECT * FROM
+	(SELECT ROWNUM rn, TCNT.* FROM
+	(SELECT DEPARTMENT_ID, COUNT(*) CNT FROM EMPLOYEES GROUP BY DEPARTMENT_ID ORDER BY CNT DESC) TCNT)
+	WHERE RN BETWEEN 4 AND 8;
+

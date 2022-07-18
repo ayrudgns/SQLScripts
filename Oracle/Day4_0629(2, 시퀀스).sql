@@ -1,0 +1,35 @@
+-- 오라클은 시퀀스를 이용하여 자동 증가되는 값을 만들고 테이블의 컬럼 값으로 INSERT 한다.
+-- (mySQL은 다른 방법을 이용)
+
+CREATE SEQUENCE TEST_SEQ1;		-- 시퀀스 이름은 식별자 (보통 테이블명을 사용해서 작성)
+
+-- DUAL은 연산, 함수 결과 등을 확인할 때 사용하는 임시 테이블이다.
+SELECT 2 + 3 FROM DUAL;
+
+-- 시퀀스의 다음 값으로 증가
+SELECT TEST_SEQ1.NEXTVAL FROM DUAL;
+-- 맨 처음 NEXTVAL을 실행해야 CURRVAL 실행 가능
+-- 시퀀스의 현재값 확인
+SELECT TEST_SEQ1.CURRVAL FROM DUAL;
+
+CREATE TABLE TBL_SEQ (
+	TNO NUMBER(7),
+	NAME NVARCHAR2(10)
+);
+-- 순번을 정하고 싶을 때 SEQUENCE를 쓴다.
+INSERT INTO TBL_SEQ(TNO, NAME) VALUES (TEST_SEQ1.NEXTVAL, '모모');
+INSERT INTO TBL_SEQ(TNO, NAME) VALUES (TEST_SEQ1.NEXTVAL, '쯔위');
+INSERT INTO TBL_SEQ(TNO, NAME) VALUES (TEST_SEQ1.NEXTVAL, '나연');
+INSERT INTO TBL_SEQ(TNO, NAME) VALUES (TEST_SEQ1.NEXTVAL, '다현');
+INSERT INTO TBL_SEQ(TNO, NAME) VALUES (TEST_SEQ1.NEXTVAL, '지효');
+
+SELECT * FROM TBL_SEQ;
+
+CREATE SEQUENCE TEST_SEQ2
+	INCREMENT BY 2			-- 증감 설정
+	START WITH 20001;		-- 시작값 설정
+-- 20001부터 시작해서 2씩 증가한다.
+-- MAXVALUE는 최댓값을 설정할 수 있고, MINVALUE는 최댓값 도달 후 순환하는 최솟값
+	
+SELECT TEST_SEQ2.NEXTVAL FROM DUAL;
+SELECT TEST_SEQ2.CURRVAL FROM DUAL;
